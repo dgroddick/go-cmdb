@@ -12,9 +12,10 @@ import (
 )
 
 const (
-	servicenowInstance = ""
-	servicenowUser     = ""
-	servicenowPassword = ""
+	snowInstance = ""
+	snowUser     = ""
+	snowPassword = ""
+	ciTable      = "cmdb_ci_linux_server"
 )
 
 type Result struct {
@@ -89,9 +90,9 @@ func main() {
 
 func getCMDBServers(client *resty.Client) ([]Server, error) {
 	resp, err := client.R().
-		SetBasicAuth(servicenowUser, servicenowPassword).
+		SetBasicAuth(snowUser, snowPassword).
 		SetHeader("Accept", "application/json").
-		Get(fmt.Sprintf("https://%s.service-now.com/api/now/table/cmdb_ci_linux_server", servicenowInstance))
+		Get(fmt.Sprintf("https://%s.service-now.com/api/now/table/%s", snowInstance, ciTable))
 
 	if err != nil {
 		return nil, fmt.Errorf("error making request: %w", err)
@@ -112,9 +113,9 @@ func getCMDBServers(client *resty.Client) ([]Server, error) {
 
 func getCMDBServer(client *resty.Client, sysID string) (*Server, error) {
 	resp, err := client.R().
-		SetBasicAuth(servicenowUser, servicenowPassword).
+		SetBasicAuth(snowUser, snowPassword).
 		SetHeader("Accept", "application/json").
-		Get(fmt.Sprintf("https://%s.service-now.com/api/now/table/cmdb_ci_linux_server/%s", servicenowInstance, sysID))
+		Get(fmt.Sprintf("https://%s.service-now.com/api/now/table/%s/%s", snowInstance, ciTable, sysID))
 
 	if err != nil {
 		return nil, fmt.Errorf("error making request: %w", err)
@@ -124,7 +125,7 @@ func getCMDBServer(client *resty.Client, sysID string) (*Server, error) {
 		return nil, fmt.Errorf("received non-200 response: %s", resp.Status())
 	}
 
-	// Debugging: Print response body
+	// Debug
 	fmt.Printf("Response Body: %s\n", resp.Body())
 
 	var server Server
@@ -138,11 +139,11 @@ func getCMDBServer(client *resty.Client, sysID string) (*Server, error) {
 
 func updateCMDBServer(client *resty.Client, sysID string, payload UpdatePayload) error {
 	resp, err := client.R().
-		SetBasicAuth(servicenowUser, servicenowPassword).
+		SetBasicAuth(snowUser, snowPassword).
 		SetHeader("Accept", "application/json").
 		SetHeader("Content-Type", "application/json").
 		SetBody(payload).
-		Put(fmt.Sprintf("https://%s.service-now.com/api/now/table/cmdb_ci_linux_server/%s", servicenowInstance, sysID))
+		Put(fmt.Sprintf("https://%s.service-now.com/api/now/table/%s/%s", snowInstance, ciTable, sysID))
 
 	if err != nil {
 		return fmt.Errorf("error making request: %w", err)
