@@ -11,12 +11,10 @@ import (
 	"github.com/go-resty/resty/v2"
 )
 
-const (
-	snowInstance = ""
-	snowUser     = ""
-	snowPassword = ""
-	ciTable      = "cmdb_ci_linux_server"
-)
+var snowInstance = os.Getenv("SN_INSTANCE")
+var snowUser = os.Getenv("SN_USER")
+var snowPassword = os.Getenv("SN_PASS")
+var ciTable = "cmdb_ci_linux_server"
 
 type Result struct {
 	Result []Server `json:"result"`
@@ -36,9 +34,6 @@ type UpdatePayload struct {
 func main() {
 	listAllFlag := flag.Bool("list-all", false, "List all CMDB CI servers")
 	getServerFlag := flag.String("get-server", "", "Get details of a server by sys_id")
-	updateServerFlag := flag.String("update-server", "", "Update details of a server by sys_id")
-	updateNameFlag := flag.String("name", "", "New name for the server")
-	updateDescriptionFlag := flag.String("description", "", "New description for the server")
 	helpFlag := flag.Bool("help", false, "Show help message")
 
 	flag.Parse()
@@ -67,22 +62,6 @@ func main() {
 		}
 
 		fmt.Printf("Fetched Server - SysID: %s, Name: %s, Description: %s\n", server.SysID, server.Name, server.ShortDescription)
-	} else if *updateServerFlag != "" {
-		if *updateNameFlag == "" && *updateDescriptionFlag == "" {
-			log.Fatalf("Please provide a new name or description to update the server")
-		}
-
-		updateData := UpdatePayload{
-			Name:             *updateNameFlag,
-			ShortDescription: *updateDescriptionFlag,
-		}
-
-		err := updateCMDBServer(client, *updateServerFlag, updateData)
-		if err != nil {
-			log.Fatalf("Error updating server: %v", err)
-		} else {
-			fmt.Println("Server updated successfully.")
-		}
 	} else {
 		flag.Usage()
 	}
@@ -135,23 +114,4 @@ func getCMDBServer(client *resty.Client, sysID string) (*Server, error) {
 	}
 
 	return &server, nil
-}
-
-func updateCMDBServer(client *resty.Client, sysID string, payload UpdatePayload) error {
-	resp, err := client.R().
-		SetBasicAuth(snowUser, snowPassword).
-		SetHeader("Accept", "application/json").
-		SetHeader("Content-Type", "application/json").
-		SetBody(payload).
-		Put(fmt.Sprintf("https://%s.service-now.com/api/now/table/%s/%s", snowInstance, ciTable, sysID))
-
-	if err != nil {
-		return fmt.Errorf("error making request: %w", err)
-	}
-
-	if resp.StatusCode() != http.StatusOK {
-		return fmt.Errorf("received non-200 response: %s", resp.Status())
-	}
-
-	return nil
 }
